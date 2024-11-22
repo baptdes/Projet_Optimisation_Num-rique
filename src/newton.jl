@@ -1,4 +1,5 @@
 using LinearAlgebra
+
 """
 Approximation d'une solution du problème min f(x), x ∈ Rⁿ, en utilisant l'algorithme de Newton.
 
@@ -40,17 +41,47 @@ Approximation d'une solution du problème min f(x), x ∈ Rⁿ, en utilisant l'a
 
 """
 function newton(f::Function, gradf::Function, hessf::Function, x0::Union{Real,Vector{<:Real}}; 
-    max_iter::Integer = 1000, 
-    tol_abs::Real = 1e-10, 
-    tol_rel::Real = 1e-8, 
-    epsilon::Real = 1)
+   max_iter::Integer = 1000, 
+   tol_abs::Real = 1e-10, 
+   tol_rel::Real = 1e-8, 
+   epsilon::Real = 1)
 
-    #
-    x_sol = x0
-    f_sol = f(x_sol)
-    flag  = -1
-    nb_iters = 0
-    xs = [x0] # vous pouvez faire xs = vcat(xs, [xk]) pour concaténer les valeurs
+   x_sol = x0
+   f_sol = f(x_sol)
+   flag  = -1
+   nb_iters = 0
+   xs = [x0]
 
-    return x_sol, f_sol, flag, nb_iters, xs
+   # Vérification de CN1 avant d'entamer les itérations
+   if norm(gradf(x0)) <= tol_abs
+      flag = 0
+      return x_sol, f_sol, flag, nb_iters, xs
+   end
+
+   while true
+      dk = hessf(x_sol)\(-gradf(x_sol))
+      x_sol += dk
+      f_sol = f(x_sol)
+      nb_iters += 1
+      xs = vcat(xs, [x_sol])
+
+      stagIter = norm(x_sol - xs[nb_iters]) <= epsilon * max(tol_rel * norm(xs[nb_iters]), tol_abs)
+      stagFonction = abs(f(x_sol) - f(xs[nb_iters])) <= epsilon * max(tol_rel * abs(f(xs[nb_iters])), tol_abs)
+      CN1 = norm(gradf(x_sol)) <= max(tol_rel * norm(gradf(x0)), tol_abs)
+
+      if CN1
+         flag = 0
+         break
+      elseif stagIter
+         flag = 1
+         break
+      elseif stagFonction
+         flag = 2
+         break
+      elseif (nb_iters == max_iter)
+         flag = 3
+         break
+      end
+   end
+   return x_sol, f_sol, flag, nb_iters, xs
 end
