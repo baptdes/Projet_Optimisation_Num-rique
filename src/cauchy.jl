@@ -32,37 +32,18 @@ Approximation de la solution du problème
 """
 function cauchy(g::Vector{<:Real}, H::Matrix{<:Real}, Δ::Real; tol_abs::Real = 1e-10)
 
-    s = zero(length(g))
-    norm_g = norm(g)
-
-    if norm_g > tol_abs
-        t_etoile = (norm_g^2)/(g'*H*g)
-        t_max = Δ/norm_g
-
-        if abs(t_etoile) < t_max
-            s = -t_etoile*g
-        else
-            s = -t_max*g
-        end
-    end
-
-    return s
-end
-
-function old_cauchy(g::Vector{<:Real}, H::Matrix{<:Real}, Δ::Real; tol_abs::Real = 1e-10)
-    g_norm = norm(g)
     a = g' * H * g
-    b = g_norm^2
+    b = -norm(g)^2
 
-    if(g_norm <= tol_abs)
+    if b ≈ 0 atol=tol_abs
         return zeros(length(g))
     end
 
-    if (a <= 0)
-        t = Δ / g_norm
+    if a <= 0
+        t = Δ / norm(g)
     else
-        t = min(Δ / g_norm, - b / a)
+        t = min(Δ / norm(g), -b / a)
     end
-    
+
     return -t * g
 end
