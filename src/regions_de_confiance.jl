@@ -57,12 +57,64 @@ function regions_de_confiance(f::Function, gradf::Function, hessf::Function, x0:
     Δ0::Real=2, Δmax::Real=10, γ1::Real=0.5, γ2::Real=2, η1::Real=0.25, η2::Real=0.75, algo_pas::String="gct",
     max_iter_gct::Integer = 2*length(x0))
 
-    #
-    x_sol = x0
-    f_sol = f(x_sol)
+    # Initialisation
     flag  = -1
     nb_iters = 0
     xs = [x0] # vous pouvez faire xs = vcat(xs, [xk]) pour concaténer les valeurs
 
-    return x_sol, f_sol, flag, nb_iters, xs
+    n = length(x0)
+    xk = x0
+    Δk = Δ0
+
+    stagIter = false
+    stagFonction = false
+    CN1 = false
+
+    if norm(gradf(x0)) <= tol_abs
+        flag = 0
+        return x0, f(x0), flag, nb_iters, xs
+    end
+
+    while flag == -1
+        sk = cauchy(gradf(xk),hessf(xk),Δk)
+
+        mk0 = f(xk)
+        mks = f(xk) + gradf(xk)'*sk + 0.5*sk'*hessf(xk)*sk
+        ρk = (f(xk) - f(xk+sk)) / (mk0 - mks)
+
+        if ρk >= η1
+            xk += sk
+            stagIter = norm(xk - xs[nb_iters + 1]) <= epsilon * max(tol_rel * norm(xs[nb_iters + 1]), tol_abs)
+            stagFonction = abs(f(xk) - f(xs[nb_iters + 1])) <= epsilon * max(tol_rel * abs(f(xs[nb_iters + 1])), tol_abs)
+        end
+
+        if ρk >= η2
+            Δk = min(γ2*Δk, Δmax)
+        elseif ρk >= η1
+            Δk = Δk
+        else
+            Δk = γ1*Δk
+        end
+
+        nb_iters += 1
+        xs = vcat(xs, [xk])
+
+        CN1 = norm(gradf(xk)) <= max(tol_rel * norm(gradf(x0)), tol_abs)
+
+        if CN1
+            flag = 0
+            break
+        elseif stagIter
+            flag = 1
+            break
+        elseif stagFonction
+            flag = 2
+            break
+        elseif (nb_iters == max_iter)
+            flag = 3
+            break
+        end
+    end
+
+    return xk, f(xk), flag, nb_iters, xs
 end
