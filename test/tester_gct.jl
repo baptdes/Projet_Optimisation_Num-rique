@@ -62,7 +62,7 @@ function tester_gct(gct::Function)
         Test.@test  s ≈ [1.9059020876695578 ; -2.3167946029410595] atol = tol_test
 
         # le cas de test 6
-        # Le pas de Cauchy conduit à un gient nul en 1 itération
+        # Le pas de Cauchy conduit à un gradient nul en 1 itération
         g = [2 ; 0]
         H = [4 0 ; 0 -15]
         Δ = 2

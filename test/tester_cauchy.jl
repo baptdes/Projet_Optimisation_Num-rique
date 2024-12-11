@@ -4,7 +4,6 @@ using Test
 function tester_cauchy(cauchy::Function)
 
     Test.@testset "Pas de Cauchy" begin
-
         @testset "Cas a = 0" begin
             # Cas où a = 0 & b = 0
             g = [0.0, 0.0]
@@ -43,21 +42,17 @@ function tester_cauchy(cauchy::Function)
             b = norm(g)^2
             Test.@test isapprox(s, -Δ/norm(g)*g, atol=1e-10)
 
-            # Cas où t = -b / a
+            # Cas où t =  -b / a
             g = [1.0, 1.0]
             H = [1.0 1.0; 1.0 1.0]
             Δ = 1.0
             s = cauchy(g, H, Δ)
 
             a = g' * H * g
-            b = norm(g)^2
+            b = - norm(g)^2
             Test.@test isapprox(s, (b / a) * g, atol=1e-10)
 
-            g = [1.0, 1.0]
-            H = [1.0 1.0; 1.0 1.0]
-            Δ = 1.0
-            s = cauchy(g, H, Δ)
-            Test.@test isapprox(s, [0.5, 0.5], atol=1e-10)
+            #TODO : Faire cas t = Δ / ‖g‖
         end
     end
 

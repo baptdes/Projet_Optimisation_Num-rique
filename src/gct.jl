@@ -36,6 +36,55 @@ function gct(g::Vector{<:Real}, H::Matrix{<:Real}, Δ::Real;
     tol_rel::Real = 1e-8)
 
     s = zeros(length(g))
+    j = 0
+    norm_g0 = norm(g);
+    gj = g
+    pj = -gj
+    while j <= max_iter && norm(gj) > max(norm_g0 * tol_rel, tol_abs)
 
+        k = pj' * H * pj
+
+        if k <= 0
+            # Calcul des racines de norm(s + sigma * pj) = Δ
+            a = norm(pj)^2
+            b = 2 * (s' * pj)
+            c = norm(s)^2 - Δ^2
+            delta = b^2 - 4 * a * c
+            sigma1 = (-b + sqrt(delta)) / (2 * a)
+            sigma2 = (-b - sqrt(delta)) / (2 * a)
+
+            # Choix de la racine pour laquelle q(sj + σpj) est la plus petite
+            function q(s)
+                return s' * gj + 0.5 * s' * H * s
+            end
+            if q(s + sigma1 * pj) <= q(s + sigma2 * pj)
+                sigma = sigma1
+            else
+                sigma = sigma2
+            end
+
+            return s + sigma * pj
+        end
+
+        alpha = (gj' * gj) / k
+
+        if norm(s + alpha * pj) >= Δ
+            # Calcul des racines de norm(s + sigma * pj) = Δ
+            a = norm(pj)^2
+            b = 2 * (s' * pj)
+            c = norm(s)^2 - Δ^2
+            delta = b^2 - 4 * a * c
+            sigma = (-b + sqrt(delta)) / (2 * a)
+
+            return s + sigma * pj
+        end
+
+        s += alpha * pj
+        gj1 = gj + alpha * H * pj
+        β = (gj1' * gj1) / (gj' * gj)
+        pj = -gj1 + β * pj
+        gj = gj1
+        j += 1
+    end
    return s
 end
