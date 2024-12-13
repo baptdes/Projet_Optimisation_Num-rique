@@ -76,7 +76,14 @@ function regions_de_confiance(f::Function, gradf::Function, hessf::Function, x0:
     end
 
     while flag == -1
-        sk = cauchy(gradf(xk),hessf(xk),Δk)
+
+        if algo_pas == "cauchy"
+            sk = cauchy(gradf(xk),hessf(xk),Δk)
+        elseif algo_pas == "gct"
+            sk = gct(gradf(xk),hessf(xk),Δk; max_iter=max_iter_gct, tol_abs=tol_abs, tol_rel=tol_rel)
+        else
+            error("L'algorithme de calcul du pas doit être 'cauchy' ou 'gct'")
+        end
 
         mk0 = f(xk)
         mks = f(xk) + gradf(xk)'*sk + 0.5*sk'*hessf(xk)*sk
