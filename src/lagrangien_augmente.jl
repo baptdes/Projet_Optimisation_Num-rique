@@ -70,6 +70,63 @@ function lagrangien_augmente(f::Function, gradf::Function, hessf::Function,
     μs = [μ0] # vous pouvez faire μs = vcat(μs, μk) pour concaténer les valeurs
     λs = [λ0]
 
+    β = 0.9
+    η = 0.1258925
+    α = 0.1
+    ε0 = 1/μ0
+    ε = ε0
+    ηk= η/(μ0^α)
+    flag = -1
+
+    if norm(gradf(x0)) <= tol_abs
+        flag = 0
+        println("Fin du calcul dès le début avec nb_iter = ", nb_iters)
+        return x0, f(x0), flag, nb_iters, μs, λs
+    end
+
+    while flag != 0
+            #Définition de la fonction lagrangienne
+            L(x) = f(x) + λs[end]'*c(x) + μs[end]/2 * norm(c(x))^2
+            gradL(x) = gradf(x) + λs[end]'*gradc(x) + μs[end]*c(x)*gradc(x)
+            hessL(x) = hessf(x) + λs[end]'*hessc(x) + μs[end] * (gradc(x)*gradc(x)' + c(x)*hessc(x))
+
+            # Calcul de la solution du problème sans contrainte
+            if algo_noc == "newton"
+                x_sol_noc, f_sol_noc, flag_noc, nb_iters_noc = newton(L, gradL, hessL, x_sol)
+            elseif algo_noc == "rc-cauchy"
+                x_sol_noc, f_sol_noc, flag_noc, nb_iters_noc = regions_de_confiance(L, gradL, hessL, x_sol, algo_pas="cauchy")
+            elseif algo_noc == "rc-gct"
+                x_sol_noc, f_sol_noc, flag_noc, nb_iters_noc = regions_de_confiance(L, gradL, hessL, x_sol, algo_pas="gct")
+            else
+                error("L'algorithme sans contrainte n'est pas reconnu")
+            end
+    
+            if norm(c(x_sol_noc)) <= ηk
+                λs = vcat(λs, λs[end] + μs[end]*c(x_sol_noc))
+                μs = vcat(μs, μs[end])
+                ε = ε/μs[end]
+                ηk = ηk/(μs[end]^β)
+            else
+                λs = vcat(λs, λs[end])
+                μs = vcat(μs, τ*μs[end])
+                ε = ε0/μs[end]
+                ηk = η/(μs[end]^α)
+            end
+
+            nb_iters += 1
+            x_sol = x_sol_noc
+            f_sol = f_sol_noc
+
+            CN1 = norm(gradL(x_sol)) <= max(tol_rel * norm(gradL(x0)), tol_abs)
+            
+            if CN1
+                flag = 0
+                break
+            elseif max_iter <= nb_iters
+                flag = 1
+                break
+            end
+    end
     return x_sol, f_sol, flag, nb_iters, μs, λs
 
 end
